@@ -4,6 +4,10 @@
   </a>
 </p>
 
+Got help from this repo about using rust to interact with blockchain (instead of javascript)
+https://github.com/brson/treasuretree
+
+
 [![Build status][travis-image]][travis-url] [![Gitpod
 Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/solana-labs/example-helloworld)
 
