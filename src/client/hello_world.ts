@@ -15,7 +15,7 @@ import fs from 'mz/fs';
 import path from 'path';
 import * as borsh from 'borsh';
 
-import {getPayer, getRpcUrl, createKeypairFromFile} from './utils';
+import { getPayer, getRpcUrl, createKeypairFromFile } from './utils';
 
 /**
  * Connection to the network
@@ -60,28 +60,41 @@ const PROGRAM_KEYPAIR_PATH = path.join(PROGRAM_PATH, 'helloworld-keypair.json');
  * The state of a greeting account managed by the hello world program
  */
 class GreetingAccount {
-  counter = 0;
-  constructor(fields: {counter: number} | undefined = undefined) {
+  txt: string = '';
+  constructor(fields: { txt: string } | undefined = undefined) {
     if (fields) {
-      this.counter = fields.counter;
+      this.txt = fields.txt;
     }
   }
+  // counter = 0;
+  // constructor(fields: {counter: number} | undefined = undefined) {
+  //   if (fields) {
+  //     this.counter = fields.counter;
+  //   }
+  // }
 }
 
 /**
  * Borsh schema definition for greeting accounts
  */
 const GreetingSchema = new Map([
-  [GreetingAccount, {kind: 'struct', fields: [['counter', 'u32']]}],
+  [GreetingAccount, { kind: 'struct', fields: [['txt', 'String']] }],
+  // [GreetingAccount, { kind: 'struct', fields: [['counter', 'u32']] }],
 ]);
 
 /**
  * The expected size of each greeting account.
  */
-const GREETING_SIZE = borsh.serialize(
-  GreetingSchema,
-  new GreetingAccount(),
-).length;
+
+const sampleGreeter = new GreetingAccount();
+sampleGreeter.txt = '1234567890'  // 10 char
+const GREETING_SIZE = borsh.serialize(GreetingSchema, sampleGreeter).length;
+console.log('Greeting size', GREETING_SIZE);
+
+// const GREETING_SIZE = borsh.serialize(
+//   GreetingSchema,
+//   new GreetingAccount(),
+// ).length;
 
 /**
  * Establish a connection to the cluster
@@ -99,7 +112,7 @@ export async function establishConnection(): Promise<void> {
 export async function establishPayer(): Promise<void> {
   let fees = 0;
   if (!payer) {
-    const {feeCalculator} = await connection.getRecentBlockhash();
+    const { feeCalculator } = await connection.getRecentBlockhash();
 
     // Calculate the cost to fund the greeter account
     fees += await connection.getMinimumBalanceForRentExemption(GREETING_SIZE);
@@ -136,6 +149,7 @@ export async function establishPayer(): Promise<void> {
 export async function checkProgram(): Promise<void> {
   // Read program id from keypair file
   try {
+    console.log("loading keypair from:", PROGRAM_KEYPAIR_PATH);
     const programKeypair = await createKeypairFromFile(PROGRAM_KEYPAIR_PATH);
     programId = programKeypair.publicKey;
   } catch (err) {
@@ -161,12 +175,14 @@ export async function checkProgram(): Promise<void> {
   console.log(`Using program ${programId.toBase58()}`);
 
   // Derive the address (public key) of a greeting account from the program so that it's easy to find later.
-  const GREETING_SEED = 'hello';
+  const GREETING_SEED = 'helloa';
   greetedPubkey = await PublicKey.createWithSeed(
     payer.publicKey,
     GREETING_SEED,
     programId,
   );
+
+  console.log('payer.publicKey:', payer.publicKey.toBase58());
 
   // Check if the greeting account has already been created
   const greetedAccount = await connection.getAccountInfo(greetedPubkey);
@@ -198,12 +214,15 @@ export async function checkProgram(): Promise<void> {
 /**
  * Say hello
  */
-export async function sayHello(): Promise<void> {
+export async function sayHello(msg: string): Promise<void> {
   console.log('Saying hello to', greetedPubkey.toBase58());
+  let message_account = new GreetingAccount();
+  message_account.txt = msg;
+
   const instruction = new TransactionInstruction({
-    keys: [{pubkey: greetedPubkey, isSigner: false, isWritable: true}],
+    keys: [{ pubkey: greetedPubkey, isSigner: false, isWritable: true }],
     programId,
-    data: Buffer.alloc(0), // All instructions are hellos
+    data: Buffer.from(borsh.serialize(GreetingSchema, message_account)), // All instructions are hellos
   });
   await sendAndConfirmTransaction(
     connection,
@@ -227,8 +246,7 @@ export async function reportGreetings(): Promise<void> {
   );
   console.log(
     greetedPubkey.toBase58(),
-    'has been greeted',
-    greeting.counter,
-    'time(s)',
+    'has been greeted with message',
+    greeting.txt,
   );
 }

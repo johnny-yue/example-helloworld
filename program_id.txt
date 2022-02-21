@@ -1,0 +1,5 @@
+Testnet
+Program Id: 3f6zY6z3s1sH442gaMSi2aAMCqZJNn1sy3ijxLKhtHTW
+
+local
+Program Id: 3f6zY6z3s1sH442gaMSi2aAMCqZJNn1sy3ijxLKhtHTW
